@@ -31,7 +31,26 @@ pipeline {
                git credentialsId: 'cloudR123', url: 'http://github.com/Mrihab/simple-java-maven-app'
         }
     }
-        
+       
+        stage("build & SonarQube analysis") {
+            agent any
+            steps {
+              withSonarQubeEnv('My SonarQube Server') {
+                  
+                sh 'mvn sonar:sonar \
+  -Dsonar.projectKey=Test \
+  -Dsonar.host.url=http://192.168.159.132:9000 \
+  -Dsonar.login=be1767e5277e08e91f5eb1fa5a93f19a00e9346f'
+              }
+            }
+          }
+          stage("Quality Gate") {
+            steps {
+              timeout(time: 1, unit: 'HOURS') {
+                waitForQualityGate abortPipeline: false
+              }
+            }
+          }
         
         
     }
