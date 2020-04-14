@@ -26,5 +26,10 @@ pipeline {
                 sh './jenkins/scripts/deliver.sh'
             }
         }
+        stage('Checkout') {
+             steps {
+               git branch: 'develop', credentialsId: 'xxxx', url: 'ssh://git@server/project.git'
+        }
+    }
     }
 }
