@@ -8,7 +8,9 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh 'mvn -B -DskipTests clean package'
+               // sh 'mvn -B -DskipTests clean package'
+                def mvnHome = tool  name: 'maven-3'  , type: 'maven' 
+                sh"${mvnHome}/bin/mvn package"
             }
         }
         stage('Test') {
@@ -32,25 +34,25 @@ pipeline {
         }
     }
        
-        stage("build & SonarQube analysis") {
-            agent any
-            steps {
-              withSonarQubeEnv('My SonarQube Server') {
+    //    stage("build & SonarQube analysis") {
+          //  agent any
+           // steps {
+            //  withSonarQubeEnv('My SonarQube Server') {
                   
-                sh 'mvn sonar:sonar \
-  -Dsonar.projectKey=Test \
-  -Dsonar.host.url=http://192.168.159.132:9000 \
-  -Dsonar.login=be1767e5277e08e91f5eb1fa5a93f19a00e9346f'
-              }
-            }
-          }
-          stage("Quality Gate") {
-            steps {
-              timeout(time: 1, unit: 'HOURS') {
-                waitForQualityGate abortPipeline: false
-              }
-            }
-          }
+                //sh 'mvn sonar:sonar \
+  //-Dsonar.projectKey=Test \
+  //-Dsonar.host.url=http://192.168.159.132:9000 \
+ // -Dsonar.login=be1767e5277e08e91f5eb1fa5a93f19a00e9346f'
+//}
+     //       }
+        //  }
+        //  stage("Quality Gate") {
+          //  steps {
+            //  timeout(time: 1, unit: 'HOURS') {
+              //  waitForQualityGate abortPipeline: false
+             // }
+            //}
+         // }
         
         
     }
