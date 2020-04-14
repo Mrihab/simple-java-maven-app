@@ -28,7 +28,7 @@ pipeline {
         }
         stage(' git Checkout') {
              steps {
-               git credentialsId: 'cloudR123', url: 'http://github.com/Mrihab/simple-java-maven-app'
+               git credentialsId: 'cloudR13', url: 'http://github.com/Mrihab/simple-java-maven-app'
         }
     }
         
