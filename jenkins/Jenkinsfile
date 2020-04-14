@@ -26,10 +26,13 @@ pipeline {
                 sh './jenkins/scripts/deliver.sh'
             }
         }
-        stage('Checkout') {
+        stage(' git Checkout') {
              steps {
-               git branch: 'develop', credentialsId: 'xxxx', url: 'ssh://git@server/project.git'
+               git credentialsId: 'cloudR123', url: 'http://github.com/Mrihab/simple-java-maven-app'
         }
     }
+        
+        
+        
     }
 }
