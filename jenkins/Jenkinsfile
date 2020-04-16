@@ -187,7 +187,35 @@ pipeline {
       
              
              
-             //
+             //monitoring with grafana 
+             
+              stage ( 'Monitoring') { 
+    
+                  
+                  echo "Creating annotation in Grafana with tags: ${tags} and description: ${text} ..."
+
+withCredentials([[$class: 'StringBinding', credentialsId: 'GRAFANA_APIKEY', variable: 'GRAFANA_APIKEY']]) {
+	apiKey = env.GRAFANA_APIKEY
+	httpRequest(
+		acceptType: 'APPLICATION_JSON',
+		consoleLogResponseBody: false,
+		contentType: 'APPLICATION_JSON',
+		customHeaders: [[maskValue: true, name: 'Authorization', value: 'Bearer ' + apiKey]],
+		httpMode: 'POST',
+		requestBody: toJson(payload),
+		responseHandle: 'NONE',
+		url: grafana + '/api/annotations',
+		validResponseCodes: '200'
+	)
+}
+                  
+                  
+    }   
+             
+        
+             //get the current tag 
+             
+             sh(returnStdout: true, script: "git tag --sort version:refname | tail -1").trim()
              
              
         
