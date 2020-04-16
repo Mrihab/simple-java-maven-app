@@ -5,45 +5,55 @@ pipeline {
             args '-v /root/.m2:/root/.m2'
         }
     }
+    
+    //
     stages {
-        stage('Build') {
+        //build angular 
+         stage(' Angular Build') {
+        milestone()
+        sh 'ng build --prod --aot --sm --progress=false'
+    }
         
-            steps {
-                sh 'mvn -B -DskipTests clean package'
-                
-            }
-        }
+        
+          stage('Archive') {
+        sh 'tar -cvzf dist.tar.gz --strip-components=1 dist'
+        archive 'dist.tar.gz'
+    }
      
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
-            }
+        
+        //test angular 
+        
+         stage('Test') {
+        withEnv(["CHROME_BIN=/usr/bin/chromium-browser"]) {
+          sh 'ng test --progress=false --watch false'
         }
+        junit '**/test-results.xml'
+    
+         
+     }  
+     
         stage('Deliver') {
             steps {
                 sh './jenkins/scripts/deliver.sh'
             }
         }
+        
+        //git checkout 
         stage(' git Checkout') {
              steps {
-               git credentialsId: 'cloudR123', url: 'http://github.com/Mrihab/simple-java-maven-app'
+               git credentialsId: '39c3af6a-711a-4ff5-8b30-61e3ee86aae3'', url: 'http://jenkins@10.1.1.70/root/SNIT-BE.git'
         }
     }
        
+        //code quality analysis 
+        
         stage("build & SonarQube analysis") {
            agent any
             steps {
+                //go to sonar plugin and identify the name
              withSonarQubeEnv('My SonarQube Server') {
                   
-                sh 'mvn sonar:sonar \
-                  -Dsonar.projectKey=Test \
-                  -Dsonar.host.url=http://192.168.159.132:9000 \
-                  -Dsonar.login=be1767e5277e08e91f5eb1fa5a93f19a00e9346f'
+               sonar-scanner.bat -D"sonar.projectKey=Test" -D"sonar.sources=." -D"sonar.host.url=http://192.168.159.132:9000" -D"sonar.login=d2c3032f73bf6ed9ff3e72eef42af7dd575b288b"
                  }
            }
          }
@@ -55,7 +65,8 @@ pipeline {
             }
           }
         
-        //deploy to server 
+        
+        //deploy to server a faire  
          stage(' Deploy to server ') {
             
             sshagent(['gitssh']) {
@@ -66,20 +77,7 @@ pipeline {
         
         //Deploy artifacts to Nexus
         
-        tools {
-       
-        maven "Maven 3.6.0"
-    }
-    environment {
-        NEXUS_VERSION = "nexus3"
-        NEXUS_PROTOCOL = "http"
-        // Where  Nexus is running
-        NEXUS_URL = "http://192.168.159.132:8081"
-        // Repository where we will upload the artifact
-        NEXUS_REPOSITORY = "gfi-nexus"
-        // Jenkins credential id to authenticate to Nexus OSS
-        NEXUS_CREDENTIAL_ID = "nexus"
-    }
+    
       
         
           stages {
@@ -87,66 +85,47 @@ pipeline {
             steps {
                 script {
                     // Let's clone the source
-                    git 'https://github.com/danielalejandrohc/cargotracker.git';
-                }
-            }
-        }
-        stage("mvn build") {
-            steps {
-                script {
-                   
-                    sh "mvn package -DskipTests=true"
+                    git 'http://jenkins@10.1.1.70/root/SNIT-BE.git';
                 }
             }
         }
               
-         
-        stage("publish to nexus") {
-            steps {
-                script {
-                    // Read POM xml file using 'readMavenPom' step , this step 'readMavenPom' is included in: https://plugins.jenkins.io/pipeline-utility-steps
-                    pom = readMavenPom file: "pom.xml";
-                    // Find built artifact under target folder
-                    filesByGlob = findFiles(glob: "target/*.${pom.packaging}");
-                    // Print some info from the artifact found
-                    echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length} ${filesByGlob[0].lastModified}"
-                    // Extract the path from the File found
-                    artifactPath = filesByGlob[0].path;
-                    // Assign to a boolean response verifying If the artifact name exists
-                    artifactExists = fileExists artifactPath;
-                    if(artifactExists) {
-                        echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging}, version ${pom.version}";
-                        nexusArtifactUploader(
-                            //nexus version
-                            nexusVersion: nexus3,
-                            ///nexus protocol
-                            protocol: http,
-                            nexusUrl: http://192.168.159.132:8081,
-                            groupId: pom.groupId,
-                            version: pom.version,
-                            repo nexus
-                            repository: gfi-nexus,
-                            credentialsId: nexus,
-                            artifacts: [
-                                // Artifact generated such as .jar, .ear and .war files.
-                                [artifactId: pom.artifactId,
-                                classifier: '',
-                                file: artifactPath,
-                                type: pom.packaging],
-                                // Lets upload the pom.xml file for additional information for Transitive dependencies
-                                [artifactId: pom.artifactId,
-                                classifier: '',
-                                file: "pom.xml",
-                                type: "pom"]
-                            ]
-                        );
-                    } else {
-                        error "*** File: ${artifactPath}, could not be found";
-                    }
-                }
-            }
-        }
-        
+              
+        stage(' Angular Build') {
+        milestone()
+        sh 'ng build --prod --aot --sm --progress=false'
+    }
+              
+         //publish angular artifact to nexus
+              
+           
+              stage('publish artifact to nexus') {
+              
+              
+              nexusArtifactUploader(
+    nexusVersion: 'nexus3',
+    protocol: 'http',
+    nexusUrl: 'http://192.168.159.132:8081/nexus',
+    groupId: 'org.springframework.boot',
+    version: version,
+    repository: 'gfi-nexus',
+    credentialsId: 'nexus',
+    artifacts: [
+        [artifactId: projectName,
+         classifier: '',
+         file: 'my-service-' + version + '.jar',
+         type: 'jar']
+    ]
+ )
+              }         
+              
+              
+              
+              
+              
+              
+              
+              
        //docker image tagging 
               
           environnement { 
@@ -164,25 +143,23 @@ pipeline {
         }
     }        
               
-           stages {
-        stage('Build') {
-        
-            steps {
-                sh 'mvn -B -DskipTests clean package'
-                
-            }
+          // angular build 
+              
+    stage('Build') {
+        milestone()
+        sh 'ng build --prod --aot --sm --progress=false'
+    }
+              
+     // angular test
+               
+     stage('Test') {
+        withEnv(["CHROME_BIN=/usr/bin/chromium-browser"]) {
+          sh 'ng test --progress=false --watch false'
         }
-     
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
-            post {
-                always {
-                    junit 'target/surefire-reports/*.xml'
-                }
-            }
-        }    
+        junit '**/test-results.xml'
+    
+         
+     }  
               
                stage (' Building image') { 
       étapes {
